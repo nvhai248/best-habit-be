@@ -97,3 +97,13 @@ func (ns *NotificationService) SendNotification(deviceToken string, title, body 
 
 	return nil
 }
+
+type NoOpNotificationProvider struct{}
+
+func NewNoOpNotificationService() *NoOpNotificationProvider {
+	return &NoOpNotificationProvider{}
+}
+
+func (ns *NoOpNotificationProvider) SendNotification(deviceToken string, title, body string) error {
+	return nil
+}

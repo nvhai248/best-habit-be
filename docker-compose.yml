@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: best-habit-mysql
+    restart: always
+    env_file: .env
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  apis:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: best-habit-apis
+    restart: always
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      DB_CONNECTION_STR: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(mysql:3306)/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=True&loc=Local
+      GOFLAGS: -buildvcs=false
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:

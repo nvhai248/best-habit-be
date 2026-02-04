@@ -1,1 +1,109 @@
+# =========================
+# GO
+# =========================
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build artifacts
+/bin/
+/build/
+/dist/
+/tmp/
+
+# Go workspace
+go.work
+go.work.sum
+
+# =========================
+# ENV & SECRETS
+# =========================
 .env
+.env.*
+!.env.example
+
+# =========================
+# LOGS
+# =========================
+*.log
+logs/
+log/
+
+# =========================
+# DATABASE
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# COVERAGE & PROFILING
+# =========================
+coverage.out
+*.coverprofile
+*.pprof
+
+# =========================
+# SWAGGER
+# =========================
+docs/swagger.json
+docs/swagger.yaml
+
+# =========================
+# DOCKER
+# =========================
+docker-compose.override.yml
+
+# =========================
+# IDE / EDITORS
+# =========================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# IntelliJ / GoLand
+.idea/
+*.iml
+
+# Vim
+*.swp
+*.swo
+*~
+
+# =========================
+# OS
+# =========================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# =========================
+# TEST / TEMP
+# =========================
+testdata/
+tmp/
+.cache/
+
+# =========================
+# UPLOADS / GENERATED FILES
+# =========================
+uploads/
+public/uploads/
+
+# =========================
+# GIN
+# =========================
+gin-bin
+
+# =========================
+# AGENT
+# =========================
+.agent

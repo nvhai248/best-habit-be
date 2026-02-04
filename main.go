@@ -24,6 +24,9 @@ import (
 	"net/http"
 	"os"
 
+	"strconv"
+	"strings"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -66,19 +69,35 @@ func runServer(db *sqlx.DB,
 
 	router := gin.Default()
 
+	// 1. Security Headers
+	router.Use(middleware.SecurityHeaders())
+
+	// 2. Rate Limiting
+	rpsStr := os.Getenv("RATE_LIMIT_RPS")
+	burstStr := os.Getenv("RATE_LIMIT_BURST")
+	rps, _ := strconv.ParseFloat(rpsStr, 64)
+	burst, _ := strconv.Atoi(burstStr)
+	if rps <= 0 {
+		rps = 10 // default
+	}
+	if burst <= 0 {
+		burst = 20 // default
+	}
+	router.Use(middleware.RateLimit(rps, burst))
+
+	// 3. CORS
+	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	if len(allowedOrigins) == 0 || allowedOrigins[0] == "" {
+		allowedOrigins = []string{"*"}
+	}
+
 	router.Use(cors.New(cors.Config{
-		AllowAllOrigins: true,
-		AllowMethods:    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{
-			"Accept",
-			"Accept-Language",
-			"Authorization",
-			"Content-Type",
-			"X-Requested-With",
-			"Origin",
-		},
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Accept", "Accept-Language", "Authorization", "Content-Type", "X-Requested-With", "Origin"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		MaxAge:           12 * 3600,
 	}))
 
 	router.Use(middleware.Recover(appCtx))
@@ -187,9 +206,9 @@ func runServer(db *sqlx.DB,
 }
 
 func main() {
-	// Load the .env file
+	// Load the .env file (optional, especially when running in Docker)
 	if err := godotenv.Load(); err != nil {
-		log.Fatalln(err)
+		log.Println("No .env file found; using environmental variables from system/Docker.")
 	}
 
 	dns := os.Getenv("DB_CONNECTION_STR")
@@ -224,17 +243,26 @@ func main() {
 	fbClientEmail := os.Getenv("FIREBASE_CLIENT_EMAIL")
 	fbClientId := os.Getenv("FIREBASE_CLIENT_ID")
 
-	sendNotificationProvider, err := sendnotificationprovider.NewNotificationService(
-		context.Background(),
-		fbProjectId,
-		fbPrivateKeyID,
-		fbPrivateKey,
-		fbClientEmail,
-		fbClientId)
+	var sendNotificationProvider sendnotificationprovider.NotificationProvider
 
-	if err != nil {
-		fmt.Println(err)
-		return
+	if fbProjectId == "" {
+		fmt.Println("Firebase project ID not found; push notifications disabled (No-Op).")
+		sendNotificationProvider = sendnotificationprovider.NewNoOpNotificationService()
+	} else {
+		var err error
+		sendNotificationProvider, err = sendnotificationprovider.NewNotificationService(
+			context.Background(),
+			fbProjectId,
+			fbPrivateKeyID,
+			fbPrivateKey,
+			fbClientEmail,
+			fbClientId)
+
+		if err != nil {
+			fmt.Println("Failed to initialize Firebase:", err)
+			fmt.Println("Fallback to No-Op notification provider.")
+			sendNotificationProvider = sendnotificationprovider.NewNoOpNotificationService()
+		}
 	}
 
 	runServer(db, secretKet, s3upProvider, gmailSender, oauthProvider, cronProvider, sendNotificationProvider)

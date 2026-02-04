@@ -1,0 +1,15 @@
+FROM golang:1.25.6
+
+WORKDIR /app
+
+# Cài air
+RUN go install github.com/air-verse/air@latest
+
+# Copy go mod trước để cache dependency
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Code sẽ được mount từ host → KHÔNG COPY source
+EXPOSE 8080
+
+CMD ["air"]
